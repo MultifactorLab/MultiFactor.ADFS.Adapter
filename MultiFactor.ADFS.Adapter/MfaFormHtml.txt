@@ -27,7 +27,7 @@
     };
     authPage.openMfaDialog();
     function onTokenReceived(event) {
-        if (accessPageUrl.startsWith(event.origin)){ //make sure message from known origin
+        if (accessPageUrl.indexOf(event.origin, 0)===0){ //make sure message from known origin
             document.getElementById('accessToken').value = event.data;
             document.getElementById('loginForm').submit();   
         }
