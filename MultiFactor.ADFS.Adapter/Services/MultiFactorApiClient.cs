@@ -59,16 +59,14 @@ namespace MultiFactor.ADFS.Adapter.Services
 
                 var response = Util.JsonDeserialize<MultiFactorWebResponse<MultiFactorAccessPage>>(json);
 
-                if (!response.Success)
-                {
-                    throw new Exception(response.Message);
-                }
+                if (!response.Success) throw new Exception(response.Message);
 
                 return response.Model.Url;
             }
             catch (Exception ex)
             {
                 Logger.Error("MultiFactor API error: " + ex.Message);
+                if (_configuration.Bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + ex.Message);
             }
         }

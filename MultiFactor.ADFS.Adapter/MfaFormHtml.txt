@@ -25,13 +25,19 @@
         iframe.style.boxShadow = "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)";
         document.body.appendChild(iframe);
     };
-    authPage.openMfaDialog();
-    function onTokenReceived(event) {
-        if (accessPageUrl.indexOf(event.origin, 0)===0){ //make sure message from known origin
-            document.getElementById('accessToken').value = event.data;
+    if(accessPageUrl.indexOf("bypass", 0)===0) {
+            document.getElementById('accessToken').value = accessPageUrl;
             document.getElementById('loginForm').submit();   
-        }
     }
-    window.addEventListener("message", onTokenReceived);
+    else {
+        authPage.openMfaDialog();
+        function onTokenReceived(event) {
+            if (accessPageUrl.indexOf(event.origin, 0)===0){ //make sure message from known origin
+                document.getElementById('accessToken').value = event.data;
+                document.getElementById('loginForm').submit();   
+            }
+        }
+        window.addEventListener("message", onTokenReceived);
+   }
 //]]>
 </script>

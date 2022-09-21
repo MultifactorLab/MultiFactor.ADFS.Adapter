@@ -6,5 +6,7 @@
         public string ApiSecret { get; set; }
         public string ApiUrl { get; set; }
         public string ApiProxy { get; set; }
+        public bool Bypass { get; set; }
+
     }
 }

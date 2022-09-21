@@ -14,7 +14,21 @@ namespace MultiFactor.ADFS.Adapter.Services
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
+        /// <summary>
+        /// Generate JWT when Bypass mode. 
+        /// </summary>
+        public string GenerateBypassToken(string login)
+        {
+            var key = Encoding.UTF8.GetBytes(_configuration.ApiSecret);
+            var origtime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
+            var exptime = DateTime.UtcNow.AddMinutes(20);
+            var body = Util.Base64UrlEncode(Encoding.UTF8.GetBytes("{" + $"\"aud\":\"{_configuration.ApiKey}\",\"exp\":{(long)(exptime - origtime).TotalSeconds},\"sub\":\"{login}\"" + "}"));
+            var head = Util.Base64UrlEncode(Encoding.UTF8.GetBytes("{\"typ\":\"JWT\",\"alg\":\"HS256\"}"));
+            var message = $"{head}.{body}";
+            var sign = Util.Base64UrlEncode(Util.HMACSHA256(key, Encoding.UTF8.GetBytes(message)));
+            return $"bypass.{message}.{sign}";
 
+        }
         /// <summary>
         /// Verify JWT
         /// </summary>
@@ -28,9 +42,11 @@ namespace MultiFactor.ADFS.Adapter.Services
             }
 
             var parts = jwt.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-            var head = parts[0];
-            var body = parts[1];
-            var sign = parts[2];
+            var bypass = false;
+            if (parts[0] == "bypass") bypass = true;
+            var head = parts[bypass?1:0];
+            var body = parts[bypass?2:1];
+            var sign = parts[bypass?3:2];
 
             //validate JwtHS256 token signature
             var key = Encoding.UTF8.GetBytes(_configuration.ApiSecret);

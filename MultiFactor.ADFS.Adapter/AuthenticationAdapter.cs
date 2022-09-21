@@ -22,6 +22,11 @@ namespace MultiFactor.ADFS.Adapter
             context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
 
             var mfaUrl = CreateAccessRequest(login);
+            if (mfaUrl == "bypass")
+            {
+                var tokenValidationService = new TokenValidationService(_configuration);
+                mfaUrl = tokenValidationService.GenerateBypassToken(login);
+            }
             return new PresentationForm(mfaUrl);
         }
 
@@ -46,13 +51,17 @@ namespace MultiFactor.ADFS.Adapter
                     var apiKeyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-key']");
                     var apiSecretElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-secret']");
                     var apiProxyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-proxy']");
+                    var bypasElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='bypass-second-factor-when-api-unreachable']");
+                    bool bypass = false;
+                    bool.TryParse(bypasElement?.Attributes["value"].Value, out bypass);
 
                     _configuration = new MultiFactorConfiguration
                     {
                         ApiUrl = apiUrlElement.Attributes["value"].Value,
                         ApiKey = apiKeyElement.Attributes["value"].Value,
                         ApiSecret = apiSecretElement.Attributes["value"].Value,
-                        ApiProxy = apiProxyElement?.Attributes["value"].Value //optional
+                        ApiProxy = apiProxyElement?.Attributes["value"].Value, //optional
+                        Bypass = bypass
                     };
                 }
             }
