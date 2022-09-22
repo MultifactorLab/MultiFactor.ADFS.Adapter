@@ -53,8 +53,7 @@ namespace MultiFactor.ADFS.Adapter
                     var apiProxyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-proxy']");
                     var bypassElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='bypass-second-factor-when-api-unreachable']");
                     bool bypass = true;
-                    if(bypassElement!=null)
-                        bool.TryParse(bypassElement.Attributes["value"].Value, out bypass);
+                    if(!bool.TryParse(bypassElement?.Attributes["value"].Value, out bypass)) bypass = true;
 
                     _configuration = new MultiFactorConfiguration
                     {
