@@ -18,6 +18,7 @@ namespace MultiFactor.ADFS.Adapter.Services
 
         public string CreateRequest(string login, string target, string postbackUrl)
         {
+            var bypass=_configuration.Bypass;
             try
             {
                 //make sure we can communicate securely
@@ -59,14 +60,18 @@ namespace MultiFactor.ADFS.Adapter.Services
 
                 var response = Util.JsonDeserialize<MultiFactorWebResponse<MultiFactorAccessPage>>(json);
 
-                if (!response.Success) throw new Exception(response.Message);
-
+                if (!response.Success)
+                {
+                    bypass = false;
+                    throw new Exception(response.Message);
+                }
                 return response.Model.Url;
             }
             catch (Exception ex)
             {
+                
                 Logger.Error("MultiFactor API error: " + ex.Message);
-                if (_configuration.Bypass) return "bypass";
+                if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + ex.Message);
             }
         }
