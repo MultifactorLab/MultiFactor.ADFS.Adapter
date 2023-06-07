@@ -34,6 +34,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                         Target = target
                     },
                 });
+                Logger.Info($"MFA request: {json}");
 
                 var requestData = Encoding.UTF8.GetBytes(json);
                 byte[] responseData = null;
@@ -56,7 +57,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                 }
 
                 json = Encoding.UTF8.GetString(responseData);
-
+                Logger.Info($"MFA response: {json}");
 
                 var response = Util.JsonDeserialize<MultiFactorWebResponse<MultiFactorAccessPage>>(json);
 
