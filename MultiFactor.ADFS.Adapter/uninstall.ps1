@@ -1,7 +1,11 @@
 # MultiFactor ADFS Adapter uninstall script
 # Run as Administrator on every ADFS server
 
-$path = Split-Path $MyInvocation.MyCommand.Path -Parent
+if ($PSISE) {
+    $path = Split-Path $psISE.CurrentFile.FullPath -Parent
+} else {
+    $path = Split-Path $MyInvocation.MyCommand.Path -Parent
+}
 Set-Location $path
 
 # 1. Unregister ADFS authentication provider on master
