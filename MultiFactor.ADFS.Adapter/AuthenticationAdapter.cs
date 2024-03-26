@@ -17,15 +17,19 @@ namespace MultiFactor.ADFS.Adapter
         public IAdapterPresentation BeginAuthentication(Claim identityClaim, HttpListenerRequest request, IAuthenticationContext context)
         {
             var login = identityClaim.Value;
+            Logger.Info($"Begin authentication for user: {login}, contextId={context.ContextId ?? "null"}, activityId={context.ActivityId ?? "null"}");
 
             //save current username in auth context
             context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
 
             var mfaUrl = CreateAccessRequest(login);
+            Logger.Info($"MfaUrl: {mfaUrl}");
+
             if (mfaUrl == "bypass")
             {
                 var tokenValidationService = new TokenValidationService(_configuration);
                 mfaUrl = tokenValidationService.GenerateBypassToken(login);
+                Logger.Info($"MfaToken: {mfaUrl}");
             }
             return new PresentationForm(mfaUrl);
         }
@@ -43,6 +47,7 @@ namespace MultiFactor.ADFS.Adapter
                 using (var sr = new StreamReader(configData.Data))
                 {
                     var text = sr.ReadToEnd();
+                    Logger.Info($"Config from adfs:\r\n{text}");
                     var doc = new XmlDocument();
                     doc.LoadXml(text);
 
@@ -83,21 +88,26 @@ namespace MultiFactor.ADFS.Adapter
 
         public IAdapterPresentation TryEndAuthentication(IAuthenticationContext context, IProofData proofData, HttpListenerRequest request, out Claim[] claims)
         {
+            Logger.Info($"End authentication for contextId={context.ContextId ?? "null"}, activityId={context.ActivityId ?? "null"}");
+
             if (proofData?.Properties?.ContainsKey("AccessToken") == true)
             {
                 //get jwt from form
                 var accessKey = proofData.Properties["AccessToken"] as string;
-                
+                Logger.Info($"Access key={accessKey} for contextId={context.ContextId ?? "null"}, activityId={context.ActivityId ?? "null"}");
+
                 var tokenValidationService = new TokenValidationService(_configuration);
 
                 //validate jwt
                 if (tokenValidationService.TryVerifyToken(accessKey, out var userName))
                 {
+                    Logger.Info($"Success verify the token for user {userName}, contextId={context.ContextId ?? "null"}, activityId={context.ActivityId ?? "null"}");
                     var contextUserName = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string;
                     if (contextUserName == null)
                     {
                         throw new ExternalAuthenticationException("Can't get username from context", context);
                     }
+                    Logger.Info($"Context user name = {contextUserName} for contextId={context.ContextId ?? "null"}, activityId={context.ActivityId ?? "null"}");
 
                     //check username
                     if (Util.CanonicalizeUserName(contextUserName) == Util.CanonicalizeUserName(userName))
