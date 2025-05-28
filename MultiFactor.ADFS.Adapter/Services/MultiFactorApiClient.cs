@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
@@ -33,6 +34,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                         Action = postbackUrl,
                         Target = target
                     },
+                    Claims = new Dictionary<string, string>() { { Constants.ADFS_IDENTITY_CLAIM, login } },
                 });
 
                 var requestData = Encoding.UTF8.GetBytes(json);

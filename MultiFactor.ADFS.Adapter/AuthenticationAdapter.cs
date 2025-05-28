@@ -18,7 +18,7 @@ namespace MultiFactor.ADFS.Adapter
         {
             var login = identityClaim.Value;
 
-            //save current username in auth context
+            // save current username in auth context
             context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
 
             var mfaUrl = CreateAccessRequest(login);
@@ -52,8 +52,7 @@ namespace MultiFactor.ADFS.Adapter
                     var apiSecretElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-secret']");
                     var apiProxyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-proxy']");
                     var bypassElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='bypass-second-factor-when-api-unreachable']");
-                    bool bypass = true;
-                    if(!bool.TryParse(bypassElement?.Attributes["value"].Value, out bypass)) bypass = true;
+                    if (!bool.TryParse(bypassElement?.Attributes["value"].Value, out bool bypass)) bypass = true;
 
                     _configuration = new MultiFactorConfiguration
                     {
@@ -85,43 +84,35 @@ namespace MultiFactor.ADFS.Adapter
         {
             if (proofData?.Properties?.ContainsKey("AccessToken") == true)
             {
-                //get jwt from form
+                // get jwt from form
                 var accessKey = proofData.Properties["AccessToken"] as string;
-                
+
                 var tokenValidationService = new TokenValidationService(_configuration);
 
-                //validate jwt
-                if (tokenValidationService.TryVerifyToken(accessKey, out var userName))
-                {
-                    var contextUserName = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string;
-                    if (contextUserName == null)
-                    {
-                        throw new ExternalAuthenticationException("Can't get username from context", context);
-                    }
+                var adfsUsername = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string
+                    ?? throw new ExternalAuthenticationException("Can't get username from context", context);
 
-                    //check username
-                    if (Util.CanonicalizeUserName(contextUserName) == Util.CanonicalizeUserName(userName))
-                    {
-                        //ok
-                        claims = new[] { new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/authenticationmethod", Constants.AUTH_CLAIM) };
-                        // null == authentication succeeded.
-                        return null;
-                    }
-                } 
+                // validate jwt
+                if (tokenValidationService.TryVerifyToken(accessKey, adfsUsername))
+                {
+                    claims = new[] { new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/authenticationmethod", Constants.AUTH_CLAIM) };
+                    // null == authentication succeeded.
+                    return null;
+                }
                 else
                 {
                     Logger.Warn("Invalid token");
                     throw new ExternalAuthenticationException("Invalid token", context);
                 }
             }
-         
+
             Logger.Warn("Invalid request");
             throw new ExternalAuthenticationException("Invalid request", context);
         }
 
         private string CreateAccessRequest(string identity)
         {
-            //call postMessage with accessToken from iframe to parent window instead of submit
+            // call postMessage with accessToken from iframe to parent window instead of submit
             var postBack = "javascript:window.parent.postMessage($`AccessToken`,'*')";
 
             var client = new MultiFactorApiClient(_configuration);
