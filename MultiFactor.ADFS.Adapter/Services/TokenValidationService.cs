@@ -9,7 +9,7 @@ namespace MultiFactor.ADFS.Adapter.Services
     /// </summary>
     public class TokenValidationService
     {
-        private MultiFactorConfiguration _configuration;
+        private readonly MultiFactorConfiguration _configuration;
 
         public TokenValidationService(MultiFactorConfiguration configuration)
         {
@@ -33,7 +33,7 @@ namespace MultiFactor.ADFS.Adapter.Services
         /// <summary>
         /// Verify JWT
         /// </summary>
-        public string VerifyToken(string jwt)
+        private IdentityFromToken VerifyToken(string jwt)
         {
             //https://multifactor.ru/docs/integration/
 
@@ -84,23 +84,45 @@ namespace MultiFactor.ADFS.Adapter.Services
                 throw new Exception("Name ID not found");
             }
 
-            return sub;
+            // raw identity
+            var adfsIdentity = json[Constants.ADFS_IDENTITY_CLAIM] as string;
+            if (string.IsNullOrEmpty(sub))
+            {
+                throw new Exception($"{Constants.ADFS_IDENTITY_CLAIM} not found");
+            }
+
+            return new IdentityFromToken { MfIdentity = sub, AdfsIdentity = adfsIdentity };
         }
 
         /// <summary>
         /// Verify JWT safe
         /// </summary>
-        public bool TryVerifyToken(string jwt, out string identity)
+        public bool TryVerifyToken(string jwt, string adfsUserIdentity)
         {
             try
             {
-                identity = VerifyToken(jwt);
-                return true;
+                var identity = VerifyToken(jwt);
+
+                // check username
+                if (adfsUserIdentity == identity.MfIdentity)
+                {
+                    return true;
+                }
+
+                // may be identity transform in MF
+                if (Util.CanonicalizeUserName(adfsUserIdentity) == Util.CanonicalizeUserName(identity.MfIdentity))
+                {
+                    if (adfsUserIdentity == identity.AdfsIdentity)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
                 Logger.Error($"Failed to parse token: {ex.Message}, {ex}");
-                identity = null;
                 return false;
             }
         }

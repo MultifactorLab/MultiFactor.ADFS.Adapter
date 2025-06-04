@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Services\IdentityFromToken.cs" />
     <Compile Include="Services\MultiFactorConfiguration.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Logger.cs" />
