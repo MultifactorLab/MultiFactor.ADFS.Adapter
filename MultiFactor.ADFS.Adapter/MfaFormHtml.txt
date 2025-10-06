@@ -13,6 +13,12 @@
     var accessPageUrl = "%AccessPageUrl%";
     authPage.openMfaDialog = function () { 
         var iframe = document.createElement("iframe");
+        const existingAllow = iframe.getAttribute('allow') || '';
+        const newAllow = existingAllow 
+            ? existingAllow + '; publickey-credentials-create \'src\'; publickey-credentials-get \'src\''
+            : 'publickey-credentials-create \'src\'; publickey-credentials-get \'src\'';
+        
+        iframe.setAttribute('allow', newAllow);
         iframe.setAttribute("src", accessPageUrl);
         iframe.style.width = "430px";
         iframe.style.height = "680px";
