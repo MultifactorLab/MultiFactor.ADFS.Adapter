@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -10,6 +11,8 @@ namespace MultiFactor.ADFS.Adapter.Services
     /// </summary>
     public class MultiFactorApiClient
     {
+        private const string InvalidCallbackUrlErrorCode = "invalid_callback_url";
+
         private MultiFactorConfiguration _configuration;
 
         public MultiFactorApiClient(MultiFactorConfiguration configuration)
@@ -69,12 +72,70 @@ namespace MultiFactor.ADFS.Adapter.Services
                 }
                 return response.Model.Url;
             }
+            catch (WebException ex)
+            {
+                HttpStatusCode? statusCode;
+                var responseBody = TryReadResponseBody(ex, out statusCode);
+                var apiError = TryParseApiError(responseBody);
+
+                if (statusCode == HttpStatusCode.Forbidden &&
+                    apiError?.ErrorCode == InvalidCallbackUrlErrorCode)
+                {
+                    bypass = false;
+                }
+
+                var message = apiError?.Message ?? ex.Message;
+                Logger.Error("MultiFactor API error: " + message);
+                if (bypass) return "bypass";
+                throw new Exception("MultiFactor API error: " + message);
+            }
             catch (Exception ex)
             {
                 
                 Logger.Error("MultiFactor API error: " + ex.Message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + ex.Message);
+            }
+        }
+
+        private static string TryReadResponseBody(WebException ex, out HttpStatusCode? statusCode)
+        {
+            statusCode = null;
+            var httpResponse = ex.Response as HttpWebResponse;
+            if (httpResponse == null)
+            {
+                return null;
+            }
+
+            statusCode = httpResponse.StatusCode;
+            using (var stream = httpResponse.GetResponseStream())
+            {
+                if (stream == null)
+                {
+                    return null;
+                }
+
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+
+        private static ApiErrorResponse TryParseApiError(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Util.JsonDeserialize<ApiErrorResponse>(json);
+            }
+            catch
+            {
+                return null;
             }
         }
     }
@@ -91,6 +152,13 @@ namespace MultiFactor.ADFS.Adapter.Services
     public class MultiFactorAccessPage
     {
         public string Url { get; set; }
+    }
+
+    internal class ApiErrorResponse
+    {
+        public string Message { get; set; }
+        public string TraceId { get; set; }
+        public string ErrorCode { get; set; }
     }
 
 }
