@@ -8,5 +8,9 @@
         public string ApiProxy { get; set; }
         public bool Bypass { get; set; }
 
+        public override string ToString()
+        {
+            return $"ApiUrl={ApiUrl}, ApiKey={ApiKey}, ApiProxy={ApiProxy}, Bypass={Bypass}";
+        }
     }
 }

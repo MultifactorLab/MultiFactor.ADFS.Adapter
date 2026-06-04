@@ -17,6 +17,8 @@ namespace MultiFactor.ADFS.Adapter
         public IAdapterPresentation BeginAuthentication(Claim identityClaim, HttpListenerRequest request, IAuthenticationContext context)
         {
             var login = identityClaim.Value;
+            
+            Logger.Info($"User: {login}. Begin authentication");
 
             // save current username in auth context
             context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
@@ -26,6 +28,8 @@ namespace MultiFactor.ADFS.Adapter
             {
                 var tokenValidationService = new TokenValidationService(_configuration);
                 mfaUrl = tokenValidationService.GenerateBypassToken(login);
+                
+                Logger.Info($"User: {login}. Bypass token generated");
             }
             return new PresentationForm(mfaUrl);
         }
@@ -63,6 +67,8 @@ namespace MultiFactor.ADFS.Adapter
                         Bypass = bypass
                     };
                 }
+                
+                Logger.Info($"Configuration for project load succesfull\r\n{_configuration}");
             }
             else
             {
@@ -92,11 +98,14 @@ namespace MultiFactor.ADFS.Adapter
                 var adfsUsername = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string
                     ?? throw new ExternalAuthenticationException("Can't get username from context", context);
 
+                Logger.Info($"User: {adfsUsername}. Try end auth");
+
                 // validate jwt
                 if (tokenValidationService.TryVerifyToken(accessKey, adfsUsername))
                 {
                     claims = new[] { new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/authenticationmethod", Constants.AUTH_CLAIM) };
                     // null == authentication succeeded.
+                    Logger.Info($"User: {adfsUsername}. Auth succeded");
                     return null;
                 }
                 else
