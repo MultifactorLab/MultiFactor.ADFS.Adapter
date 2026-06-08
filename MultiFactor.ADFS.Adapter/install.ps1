@@ -9,12 +9,29 @@ if ($PSISE) {
 
 Set-Location $path
 
-# 1. Add adapter assembly to global cache
+# 1. Add adapter assembly and its dependencies to global cache
 
 [System.Reflection.Assembly]::Load("System.EnterpriseServices, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
 $publish = New-Object System.EnterpriseServices.Internal.Publish
 
 $publish.GacInstall($path + '\MultiFactor.ADFS.Adapter.dll')
+
+$dependencies = @(
+    'Serilog.dll',
+    'Serilog.Sinks.File.dll',
+    'Serilog.Sinks.EventLog.dll',
+    'Serilog.Sinks.Syslog.dll',
+    'Serilog.Sinks.PeriodicBatching.dll',
+    'System.Runtime.InteropServices.RuntimeInformation.dll'
+)
+foreach ($dependency in $dependencies) {
+    $dependencyPath = Join-Path $path $dependency
+    if (Test-Path $dependencyPath) {
+        $publish.GacInstall($dependencyPath)
+    } else {
+        Write-Warning "Dependency not found, skipped: $dependencyPath"
+    }
+}
 
 # 2. Register ADFS authentication provider on master
 

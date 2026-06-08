@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MultiFactor.ADFS.Adapter.Logging;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -14,10 +16,12 @@ namespace MultiFactor.ADFS.Adapter.Services
         private const string InvalidCallbackUrlErrorCode = "invalid_callback_url";
 
         private MultiFactorConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public MultiFactorApiClient(MultiFactorConfiguration configuration)
+        public MultiFactorApiClient(MultiFactorConfiguration configuration, ILogger logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public string CreateRequest(string login, string target, string postbackUrl)
@@ -85,14 +89,13 @@ namespace MultiFactor.ADFS.Adapter.Services
                 }
 
                 var message = apiError?.Message ?? ex.Message;
-                Logger.Error("MultiFactor API error: " + message);
+                _logger.ApiRequestFailed(ex, message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + message);
             }
             catch (Exception ex)
             {
-                
-                Logger.Error("MultiFactor API error: " + ex.Message);
+                _logger.ApiError(ex, ex.Message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + ex.Message);
             }
