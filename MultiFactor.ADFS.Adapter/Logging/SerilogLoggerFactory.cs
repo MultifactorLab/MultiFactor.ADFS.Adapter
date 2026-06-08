@@ -15,7 +15,7 @@ namespace MultiFactor.ADFS.Adapter.Logging
         private const string DefaultSyslogAppName = "multifactor-adfs";
 
         private const string FileOutputTemplate =
-            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{EventId}] {Message:lj}{NewLine}{Exception}";
         private const string EventLogOutputTemplate =
             "{Message:lj}{NewLine}{Exception}";
 
