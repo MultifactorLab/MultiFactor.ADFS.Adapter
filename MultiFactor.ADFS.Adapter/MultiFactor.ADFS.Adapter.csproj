@@ -124,6 +124,10 @@
     <!-- On non-Windows the exe is launched through Mono; on Windows it runs directly. -->
     <ILRepackLauncher Condition="'$(OS)' != 'Windows_NT'">mono </ILRepackLauncher>
   </PropertyGroup>
+  <Target Name="ForceRestoreInCI" BeforeTargets="BeforeBuild">
+    <Message Importance="High" Text="[CI HACK] Running explicit NuGet restore for MSBuild..." />
+    <Exec Command="dotnet restore &quot;$(MSBuildProjectFullPath)&quot;" />
+  </Target>
   <Target Name="ILRepackMerge" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <Exec WorkingDirectory="$(OutDir)"
           Command="$(ILRepackLauncher)&quot;$(ILRepackExe)&quot; /internalize /ndebug /keyfile:&quot;$(ProjectDir)SigningKey.snk&quot; /out:merged/$(TargetFileName) $(TargetFileName) Serilog.dll Serilog.Sinks.EventLog.dll Serilog.Sinks.File.dll Serilog.Sinks.PeriodicBatching.dll Serilog.Sinks.Syslog.dll" />
