@@ -5,6 +5,8 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{FCAFC01E-2333-44EF-9C19-703A3220E920}</ProjectGuid>
+    <RuntimeIdentifier>win</RuntimeIdentifier>
+    <RuntimeIdentifiers>win</RuntimeIdentifiers>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <ResolveNuGetPackages>true</ResolveNuGetPackages>
     <OutputType>Library</OutputType>
