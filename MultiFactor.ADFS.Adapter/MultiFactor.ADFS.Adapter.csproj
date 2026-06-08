@@ -67,6 +67,7 @@
     <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.3.0"/>
     <PackageReference Include="Serilog.Sinks.SyslogMessages" Version="3.0.1"/>
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0"/>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.18" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Services\IdentityFromToken.cs" />
@@ -121,13 +122,8 @@
   <!-- Merge Serilog dependencies into the strong-named adapter assembly so a single DLL goes
        into the GAC. Serilog.Sinks.Syslog is not strong-named and cannot be GAC'd on its own,
        which makes merging required. Runs on Windows for Release builds (CI). -->
-  <PropertyGroup>
-    <ILRepackExe>$([System.IO.Path]::GetFullPath('$(ProjectDir)/../packages/ILRepack.2.0.18/tools/ILRepack.exe'))</ILRepackExe>
-    <!-- On non-Windows the exe is launched through Mono; on Windows it runs directly. -->
-    <ILRepackLauncher Condition="'$(OS)' != 'Windows_NT'">mono </ILRepackLauncher>
-  </PropertyGroup>
   <Target Name="ForceRestoreInCI" BeforeTargets="BeforeBuild">
-    <Message Importance="High" Text="[CI HACK] Running explicit NuGet restore for MSBuild..." />
+    <Message Importance="High" Text="Running explicit NuGet restore for MSBuild..." />
     <Exec Command="dotnet restore &quot;$(MSBuildProjectFullPath)&quot;" />
   </Target>
   <Target Name="ILRepackMerge" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
