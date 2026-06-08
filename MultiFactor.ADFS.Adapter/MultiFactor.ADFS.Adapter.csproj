@@ -6,6 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{FCAFC01E-2333-44EF-9C19-703A3220E920}</ProjectGuid>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <ResolveNuGetPackages>true</ResolveNuGetPackages>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MultiFactor.ADFS.Adapter</RootNamespace>
