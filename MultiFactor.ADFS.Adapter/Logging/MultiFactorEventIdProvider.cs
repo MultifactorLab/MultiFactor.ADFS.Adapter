@@ -17,7 +17,16 @@ namespace MultiFactor.ADFS.Adapter.Logging
                 return id;
             }
 
-            return 0;
+            switch (logEvent.Level)
+            {
+                case LogEventLevel.Warning:
+                    return AdfsEventId.DefaultWarning;
+                case LogEventLevel.Error:
+                case LogEventLevel.Fatal:
+                    return AdfsEventId.DefaultError;
+                default:
+                    return AdfsEventId.DefaultInfo;
+            }
         }
     }
 }

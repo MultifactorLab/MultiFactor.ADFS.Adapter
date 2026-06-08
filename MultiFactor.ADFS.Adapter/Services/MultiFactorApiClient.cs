@@ -89,7 +89,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                 }
 
                 var message = apiError?.Message ?? ex.Message;
-                _logger.ApiRequestFailed(ex, message);
+                _logger.ApiRequestError(ex, message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + message);
             }

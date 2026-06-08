@@ -1,13 +1,12 @@
 using System;
 using System.IO;
-using MultiFactor.ADFS.Adapter.Logging;
 using MultiFactor.ADFS.Adapter.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.Syslog;
 
-namespace MultiFactor.ADFS.Adapter
+namespace MultiFactor.ADFS.Adapter.Logging
 {
     public static class SerilogLoggerFactory
     {
@@ -56,6 +55,7 @@ namespace MultiFactor.ADFS.Adapter
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: null, //??
                     flushToDiskInterval: TimeSpan.FromSeconds(1),
+                    // ADFS hosts the adapter in multiple worker processes — shared mode prevents each process from creating its own log file
                     shared: true);
                 return;
             }
@@ -70,6 +70,7 @@ namespace MultiFactor.ADFS.Adapter
                 retainedFileCountLimit: null, //?
                 flushToDiskInterval: TimeSpan.FromSeconds(1),
                 outputTemplate: template,
+                // ADFS hosts the adapter in multiple worker processes — shared mode prevents each process from creating its own log file
                 shared: true);
         }
 

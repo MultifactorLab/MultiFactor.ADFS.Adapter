@@ -70,13 +70,13 @@
     <PackageReference Include="ILRepack" Version="2.0.18" GeneratePathProperty="true" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Logging\SerilogLoggerFactory.cs" />
     <Compile Include="Services\IdentityFromToken.cs" />
     <Compile Include="Services\MultiFactorConfiguration.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Logging\AdfsEventId.cs" />
     <Compile Include="Logging\LoggerEventExtensions.cs" />
     <Compile Include="Logging\MultiFactorEventIdProvider.cs" />
-    <Compile Include="SerilogLoggerFactory.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="PresentationForm.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

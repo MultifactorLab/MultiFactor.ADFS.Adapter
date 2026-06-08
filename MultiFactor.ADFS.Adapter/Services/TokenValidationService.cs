@@ -126,7 +126,7 @@ namespace MultiFactor.ADFS.Adapter.Services
             }
             catch (Exception ex)
             {
-                _logger.TokenValidationFailed(ex);
+                _logger.TokenValidationError(ex);
                 return false;
             }
         }

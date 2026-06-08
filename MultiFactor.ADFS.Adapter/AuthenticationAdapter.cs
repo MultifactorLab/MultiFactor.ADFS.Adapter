@@ -1,4 +1,4 @@
-﻿using Microsoft.IdentityServer.Web.Authentication.External;
+using Microsoft.IdentityServer.Web.Authentication.External;
 using MultiFactor.ADFS.Adapter.Logging;
 using MultiFactor.ADFS.Adapter.Services;
 using Serilog;
@@ -13,28 +13,41 @@ namespace MultiFactor.ADFS.Adapter
     public class AuthenticationAdapter : IAuthenticationAdapter
     {
         private MultiFactorConfiguration _configuration;
-        private ILogger _logger;
+        private ILogger _logger = SerilogLoggerFactory.CreateLogger(null);
 
         public IAuthenticationAdapterMetadata Metadata => new Metadata();
 
+        public AuthenticationAdapter()
+        {
+            _logger.AdapterStarted();
+        }
+
         public IAdapterPresentation BeginAuthentication(Claim identityClaim, HttpListenerRequest request, IAuthenticationContext context)
         {
-            var login = identityClaim.Value;
-
-            _logger.Information("User: {Login}. Begin authentication", login);
-
-            // save current username in auth context
-            context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
-
-            var mfaUrl = CreateAccessRequest(login);
-            if (mfaUrl == "bypass")
+            try
             {
-                var tokenValidationService = new TokenValidationService(_configuration, _logger);
-                mfaUrl = tokenValidationService.GenerateBypassToken(login);
+                var login = identityClaim.Value;
 
-                _logger.Information("User: {Login}. Bypass token generated", login);
+                _logger.BeginAuthentication(login);
+
+                // save current username in auth context
+                context.Data.Add(Constants.AUTH_CONTEXT_IDENTITY, login);
+
+                var mfaUrl = CreateAccessRequest(login);
+                if (mfaUrl == "bypass")
+                {
+                    var tokenValidationService = new TokenValidationService(_configuration, _logger);
+                    mfaUrl = tokenValidationService.GenerateBypassToken(login);
+
+                    _logger.BypassActivated(login);
+                }
+                return new PresentationForm(mfaUrl);
             }
-            return new PresentationForm(mfaUrl);
+            catch (Exception ex)
+            {
+                _logger.AdapterError(ex);
+                throw;
+            }
         }
 
         public bool IsAvailableForUser(Claim identityClaim, IAuthenticationContext context)
@@ -44,98 +57,115 @@ namespace MultiFactor.ADFS.Adapter
 
         public void OnAuthenticationPipelineLoad(IAuthenticationMethodConfigData configData)
         {
-            //load configuration from xml file
             if (configData?.Data != null)
             {
-                using (var sr = new StreamReader(configData.Data))
+                try
                 {
-                    var text = sr.ReadToEnd();
-                    var doc = new XmlDocument();
-                    doc.LoadXml(text);
-
-                    var appSettings = doc.SelectSingleNode("//appSettings");
-                    var apiUrlElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-url']");
-                    var apiKeyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-key']");
-                    var apiSecretElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-secret']");
-                    var apiProxyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-proxy']");
-                    var bypassElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='bypass-second-factor-when-api-unreachable']");
-                    if (!bool.TryParse(bypassElement?.Attributes["value"].Value, out bool bypass)) bypass = true;
-
-                    _configuration = new MultiFactorConfiguration
+                    using (var sr = new StreamReader(configData.Data))
                     {
-                        ApiUrl = apiUrlElement.Attributes["value"].Value,
-                        ApiKey = apiKeyElement.Attributes["value"].Value,
-                        ApiSecret = apiSecretElement.Attributes["value"].Value,
-                        ApiProxy = apiProxyElement?.Attributes["value"].Value, //optional
-                        Bypass = bypass,
+                        var text = sr.ReadToEnd();
+                        var doc = new XmlDocument();
+                        doc.LoadXml(text);
 
-                        LoggingLevel = GetValue(appSettings, "logging-level"),
-                        LoggingFormat = GetValue(appSettings, "logging-format"),
-                        SyslogServer = GetValue(appSettings, "syslog-server"),
-                        SyslogFormat = GetValue(appSettings, "syslog-format"),
-                        SyslogFacility = GetValue(appSettings, "syslog-facility"),
-                        SyslogAppName = GetValue(appSettings, "syslog-app-name"),
-                        SyslogFramer = GetValue(appSettings, "syslog-framer"),
-                        SyslogUseTls = ParseNullableBool(GetValue(appSettings, "syslog-use-tls")),
-                        SyslogOutputTemplate = GetValue(appSettings, "syslog-output-template"),
-                        FileLogOutputTemplate = GetValue(appSettings, "file-log-output-template")
-                    };
+                        var appSettings = doc.SelectSingleNode("//appSettings");
+                        var apiUrlElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-url']");
+                        var apiKeyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-key']");
+                        var apiSecretElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-secret']");
+                        var apiProxyElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='multifactor-api-proxy']");
+                        var bypassElement = (XmlElement)appSettings.SelectSingleNode("//add[@key='bypass-second-factor-when-api-unreachable']");
+                        if (!bool.TryParse(bypassElement?.Attributes["value"].Value, out bool bypass)) bypass = true;
+
+                        _configuration = new MultiFactorConfiguration
+                        {
+                            ApiUrl = apiUrlElement.Attributes["value"].Value,
+                            ApiKey = apiKeyElement.Attributes["value"].Value,
+                            ApiSecret = apiSecretElement.Attributes["value"].Value,
+                            ApiProxy = apiProxyElement?.Attributes["value"].Value, //optional
+                            Bypass = bypass,
+
+                            LoggingLevel = GetValue(appSettings, "logging-level"),
+                            LoggingFormat = GetValue(appSettings, "logging-format"),
+                            SyslogServer = GetValue(appSettings, "syslog-server"),
+                            SyslogFormat = GetValue(appSettings, "syslog-format"),
+                            SyslogFacility = GetValue(appSettings, "syslog-facility"),
+                            SyslogAppName = GetValue(appSettings, "syslog-app-name"),
+                            SyslogFramer = GetValue(appSettings, "syslog-framer"),
+                            SyslogUseTls = ParseNullableBool(GetValue(appSettings, "syslog-use-tls")),
+                            SyslogOutputTemplate = GetValue(appSettings, "syslog-output-template"),
+                            FileLogOutputTemplate = GetValue(appSettings, "file-log-output-template")
+                        };
+                    }
+
+                    _logger = SerilogLoggerFactory.CreateLogger(_configuration);
                 }
-
-                _logger = SerilogLoggerFactory.CreateLogger(_configuration);
-                
-                _logger.Information(
-                    "Configuration loaded successfully. ApiUrl: {ApiUrl}, ApiProxy: {ApiProxy}, Bypass: {Bypass}",
-                    _configuration.ApiUrl, _configuration.ApiProxy, _configuration.Bypass);
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Failed to parse adapter configuration");
+                    throw;
+                }
             }
             else
             {
-                _logger = SerilogLoggerFactory.CreateLogger(null);
-                _logger.Error("Can't load configuration, check ConfigurationFilePath");
+                _logger.Error("Cannot load adapter configuration: no configuration data provided by ADFS");
                 throw new Exception("Configuration error");
             }
         }
 
         public void OnAuthenticationPipelineUnload()
         {
+            _logger?.AdapterStopping();
         }
 
         public IAdapterPresentation OnError(HttpListenerRequest request, ExternalAuthenticationException ex)
         {
+            _logger?.AdapterError(ex);
             throw new UnauthorizedAccessException();
         }
 
         public IAdapterPresentation TryEndAuthentication(IAuthenticationContext context, IProofData proofData, HttpListenerRequest request, out Claim[] claims)
         {
-            if (proofData?.Properties?.ContainsKey("AccessToken") == true)
+            try
             {
-                // get jwt from form
-                var accessKey = proofData.Properties["AccessToken"] as string;
-
-                var tokenValidationService = new TokenValidationService(_configuration, _logger);
-
-                var adfsUsername = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string
-                    ?? throw new ExternalAuthenticationException("Can't get username from context", context);
-
-                _logger.Information("User: {User}. Try end auth", adfsUsername);
-
-                // validate jwt
-                if (tokenValidationService.TryVerifyToken(accessKey, adfsUsername))
+                if (proofData?.Properties?.ContainsKey("AccessToken") == true)
                 {
-                    claims = new[] { new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/authenticationmethod", Constants.AUTH_CLAIM) };
-                    // null == authentication succeeded.
-                    _logger.Information("User: {User}. Auth succeeded", adfsUsername);
-                    return null;
+                    var accessKey = proofData.Properties["AccessToken"] as string;
+
+                    var tokenValidationService = new TokenValidationService(_configuration, _logger);
+
+                    var adfsUsername = context.Data[Constants.AUTH_CONTEXT_IDENTITY] as string;
+                    if (adfsUsername == null)
+                    {
+                        _logger.AdapterError(new InvalidOperationException("User identity not found in authentication context"));
+                        throw new ExternalAuthenticationException("Can't get username from context", context);
+                    }
+
+                    if (tokenValidationService.TryVerifyToken(accessKey, adfsUsername))
+                    {
+                        claims = new[] { new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/authenticationmethod", Constants.AUTH_CLAIM) };
+                        _logger.AuthenticationSucceeded(adfsUsername);
+                        return null;
+                    }
+                    else
+                    {
+                        const string reason = "Invalid token";
+                        _logger.AuthenticationFailed(adfsUsername, reason);
+                        throw new ExternalAuthenticationException(reason, context);
+                    }
                 }
-                else
-                {
-                    _logger.InvalidToken();
-                    throw new ExternalAuthenticationException("Invalid token", context);
-                }
+
+                _logger.InvalidRequest();
+                throw new ExternalAuthenticationException("Invalid request", context);
             }
-
-            _logger.InvalidRequest();
-            throw new ExternalAuthenticationException("Invalid request", context);
+            catch (ExternalAuthenticationException)
+            {
+                // intentional, already logged above
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.AdapterError(ex);
+                throw;
+            }
         }
 
         private static string GetValue(XmlNode appSettings, string key)
