@@ -15,24 +15,9 @@ if ($stsrole -eq "PrimaryComputer") {
 	Unregister-AdfsAuthenticationProvider -Name "MultiFactor"
 }
 
-# 2. Remove adapter assembly and its dependencies from global cache
+# 2. Remove adapter assembly from global cache
 
 [System.Reflection.Assembly]::Load("System.EnterpriseServices, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
 $publish = New-Object System.EnterpriseServices.Internal.Publish
 
 $publish.GacRemove($path + "\MultiFactor.ADFS.Adapter.dll")
-
-$dependencies = @(
-    'Serilog.dll',
-    'Serilog.Sinks.File.dll',
-    'Serilog.Sinks.EventLog.dll',
-    'Serilog.Sinks.Syslog.dll',
-    'Serilog.Sinks.PeriodicBatching.dll',
-    'System.Runtime.InteropServices.RuntimeInformation.dll'
-)
-foreach ($dependency in $dependencies) {
-    $dependencyPath = Join-Path $path $dependency
-    if (Test-Path $dependencyPath) {
-        $publish.GacRemove($dependencyPath)
-    }
-}

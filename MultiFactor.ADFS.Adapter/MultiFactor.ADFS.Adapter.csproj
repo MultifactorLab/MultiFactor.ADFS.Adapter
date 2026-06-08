@@ -5,6 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{FCAFC01E-2333-44EF-9C19-703A3220E920}</ProjectGuid>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MultiFactor.ADFS.Adapter</RootNamespace>
@@ -57,20 +58,12 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Serilog">
-      <Version>2.12.0</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.EventLog">
-      <Version>3.1.0</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.File">
-      <Version>5.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.SyslogMessages">
-      <Version>3.0.1</Version>
-    </PackageReference>
+    <PackageReference Include="Serilog" Version="2.12.0"/>
+    <PackageReference Include="Serilog.Sinks.EventLog" Version="3.1.0"/>
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
+    <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.3.0"/>
+    <PackageReference Include="Serilog.Sinks.SyslogMessages" Version="3.0.1"/>
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0"/>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Services\IdentityFromToken.cs" />
@@ -122,4 +115,22 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <!-- Merge Serilog dependencies into the strong-named adapter assembly so a single DLL goes
+       into the GAC. Serilog.Sinks.Syslog is not strong-named and cannot be GAC'd on its own,
+       which makes merging required. Runs on Windows for Release builds (CI). -->
+  <PropertyGroup>
+    <ILRepackExe>$([System.IO.Path]::GetFullPath('$(ProjectDir)/../packages/ILRepack.2.0.18/tools/ILRepack.exe'))</ILRepackExe>
+    <!-- On non-Windows the exe is launched through Mono; on Windows it runs directly. -->
+    <ILRepackLauncher Condition="'$(OS)' != 'Windows_NT'">mono </ILRepackLauncher>
+  </PropertyGroup>
+  <Target Name="ILRepackMerge" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Exec WorkingDirectory="$(OutDir)"
+          Command="$(ILRepackLauncher)&quot;$(ILRepackExe)&quot; /internalize /ndebug /keyfile:&quot;$(ProjectDir)SigningKey.snk&quot; /out:merged/$(TargetFileName) $(TargetFileName) Serilog.dll Serilog.Sinks.EventLog.dll Serilog.Sinks.File.dll Serilog.Sinks.PeriodicBatching.dll Serilog.Sinks.Syslog.dll" />
+    <Copy SourceFiles="$(OutDir)merged/$(TargetFileName)" DestinationFiles="$(OutDir)$(TargetFileName)" OverwriteReadOnlyFiles="true" />
+    <ItemGroup>
+      <MergedLeftovers Include="$(OutDir)Serilog*.dll;$(OutDir)Serilog*.xml;$(OutDir)Serilog*.pdb;$(OutDir)System.Runtime.InteropServices.RuntimeInformation.*" />
+    </ItemGroup>
+    <Delete Files="@(MergedLeftovers)" />
+    <RemoveDir Directories="$(OutDir)merged" />
+  </Target>
 </Project>
