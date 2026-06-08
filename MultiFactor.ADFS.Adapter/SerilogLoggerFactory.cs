@@ -54,8 +54,9 @@ namespace MultiFactor.ADFS.Adapter
                     new JsonFormatter(),
                     path: logFile,
                     rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: null,            // ???
-                    flushToDiskInterval: TimeSpan.FromSeconds(1));
+                    retainedFileCountLimit: null, //??
+                    flushToDiskInterval: TimeSpan.FromSeconds(1),
+                    shared: true);
                 return;
             }
 
@@ -66,9 +67,10 @@ namespace MultiFactor.ADFS.Adapter
             loggerConfiguration.WriteTo.File(
                 path: logFile,
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: null, // ??
+                retainedFileCountLimit: null, //?
                 flushToDiskInterval: TimeSpan.FromSeconds(1),
-                outputTemplate: template);
+                outputTemplate: template,
+                shared: true);
         }
 
         private static void ConfigureSyslog(LoggerConfiguration loggerConfiguration, MultiFactorConfiguration config)
