@@ -7,7 +7,6 @@
     <ProjectGuid>{FCAFC01E-2333-44EF-9C19-703A3220E920}</ProjectGuid>
     <RuntimeIdentifier>win</RuntimeIdentifier>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
-    <ResolveNuGetPackages>true</ResolveNuGetPackages>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MultiFactor.ADFS.Adapter</RootNamespace>
@@ -127,8 +126,6 @@
          Falls back to the global cache path on a fresh CI run where restore hasn't happened yet. -->
     <ILRepackExe Condition="'$(PkgILRepack)' != ''">$(PkgILRepack)\tools\ILRepack.exe</ILRepackExe>
     <ILRepackExe Condition="'$(ILRepackExe)' == ''">$(USERPROFILE)\.nuget\packages\ilrepack\$(ILRepackVersion)\tools\ILRepack.exe</ILRepackExe>
-    <!-- On non-Windows the exe is launched through Mono; on Windows it runs directly. -->
-    <ILRepackLauncher Condition="'$(OS)' != 'Windows_NT'">mono </ILRepackLauncher>
   </PropertyGroup>
   <!-- Ensures packages are present on a fresh CI run before the build starts. -->
   <Target Name="ForceRestoreInCI" BeforeTargets="BeforeBuild" Condition="'$(CI)' == 'true'">
