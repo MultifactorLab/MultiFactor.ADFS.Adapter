@@ -26,9 +26,29 @@ namespace MultiFactor.ADFS.Adapter.Logging
 
             ConfigureEventLog(loggerConfiguration);
             ConfigureFile(loggerConfiguration, config);
-            ConfigureSyslog(loggerConfiguration, config);
 
-            return loggerConfiguration.CreateLogger();
+            Exception syslogError = null;
+            if (!string.IsNullOrWhiteSpace(config?.SyslogServer))
+            {
+                try
+                {
+                    ConfigureSyslog(loggerConfiguration, config);
+                }
+                catch (Exception ex)
+                {
+                    syslogError = ex;
+                }
+            }
+
+            var logger = loggerConfiguration.CreateLogger();
+            if (syslogError != null)
+            {
+                logger.Warning(syslogError,
+                    "Failed to configure syslog sink for server {Server}, syslog will be disabled",
+                    config.SyslogServer);
+            }
+
+            return logger;
         }
 
         private static void ConfigureEventLog(LoggerConfiguration loggerConfiguration)
@@ -76,50 +96,39 @@ namespace MultiFactor.ADFS.Adapter.Logging
 
         private static void ConfigureSyslog(LoggerConfiguration loggerConfiguration, MultiFactorConfiguration config)
         {
-            var server = config?.SyslogServer;
-            if (string.IsNullOrWhiteSpace(server))
-            {
-                return;
-            }
+            var format = ParseEnum(config.SyslogFormat, SyslogFormat.RFC5424);
+            var facility = ParseEnum(config.SyslogFacility, Facility.Auth);
+            var framer = ParseEnum(config.SyslogFramer, FramingType.OCTET_COUNTING);
+            var appName = string.IsNullOrWhiteSpace(config.SyslogAppName) ? DefaultSyslogAppName : config.SyslogAppName;
+            var template = string.IsNullOrWhiteSpace(config.SyslogOutputTemplate) ? null : config.SyslogOutputTemplate;
+            var useTls = config.SyslogUseTls ?? false;
 
-            try
-            {
-                var format = ParseEnum(config.SyslogFormat, SyslogFormat.RFC5424);
-                var facility = ParseEnum(config.SyslogFacility, Facility.Auth);
-                var framer = ParseEnum(config.SyslogFramer, FramingType.OCTET_COUNTING);
-                var appName = string.IsNullOrWhiteSpace(config.SyslogAppName) ? DefaultSyslogAppName : config.SyslogAppName;
-                var template = string.IsNullOrWhiteSpace(config.SyslogOutputTemplate) ? null : config.SyslogOutputTemplate;
-                var useTls = config.SyslogUseTls ?? false;
+            var uri = new Uri(config.SyslogServer);
 
-                var uri = new Uri(server);
-
-                switch (uri.Scheme.ToLowerInvariant())
-                {
-                    case "udp":
-                        loggerConfiguration.WriteTo.UdpSyslog(
-                            host: uri.Host,
-                            port: uri.Port,
-                            appName: appName,
-                            format: format,
-                            facility: facility,
-                            outputTemplate: template);
-                        break;
-                    case "tcp":
-                        loggerConfiguration.WriteTo.TcpSyslog(
-                            host: uri.Host,
-                            port: uri.Port,
-                            appName: appName,
-                            framingType: framer,
-                            format: format,
-                            facility: facility,
-                            useTls: useTls,
-                            outputTemplate: template);
-                        break;
-                }
-            }
-            catch
+            switch (uri.Scheme.ToLowerInvariant())
             {
-                // ??
+                case "udp":
+                    loggerConfiguration.WriteTo.UdpSyslog(
+                        host: uri.Host,
+                        port: uri.Port,
+                        appName: appName,
+                        format: format,
+                        facility: facility,
+                        outputTemplate: template);
+                    break;
+                case "tcp":
+                    loggerConfiguration.WriteTo.TcpSyslog(
+                        host: uri.Host,
+                        port: uri.Port,
+                        appName: appName,
+                        framingType: framer,
+                        format: format,
+                        facility: facility,
+                        useTls: useTls,
+                        outputTemplate: template);
+                    break;
+                default:
+                    throw new ArgumentException($"Unsupported syslog scheme '{uri.Scheme}'. Use udp:// or tcp://");
             }
         }
 
