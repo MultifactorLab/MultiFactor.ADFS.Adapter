@@ -97,16 +97,17 @@ namespace MultiFactor.ADFS.Adapter
                     }
 
                     _logger = SerilogLoggerFactory.CreateLogger(_configuration);
+                    _logger.Debug("Configuration loaded. {Configuration}", _configuration);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Failed to parse adapter configuration");
+                    _logger.ConfigurationError(ex, "Failed to parse adapter configuration");
                     throw;
                 }
             }
             else
             {
-                _logger.Error("Cannot load adapter configuration: no configuration data provided by ADFS");
+                _logger.ConfigurationError("No configuration data provided by ADFS");
                 throw new Exception("Configuration error");
             }
         }

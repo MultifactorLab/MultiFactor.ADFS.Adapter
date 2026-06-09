@@ -23,5 +23,6 @@ namespace MultiFactor.ADFS.Adapter.Logging
         public const ushort ApiError = DefaultError + 2; // API reachable but returned an error response
         public const ushort TokenValidationFailed = DefaultError + 3; // exception thrown during token verification
         public const ushort AdapterError = DefaultError + 4; // unhandled error reported by ADFS pipeline
+        public const ushort ConfigurationFailed = DefaultError + 5; // adapter configuration could not be loaded or parsed
     }
 }

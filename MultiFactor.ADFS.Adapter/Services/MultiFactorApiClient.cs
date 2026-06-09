@@ -29,6 +29,8 @@ namespace MultiFactor.ADFS.Adapter.Services
             var bypass=_configuration.Bypass;
             try
             {
+                _logger.Debug("Creating second-factor request for user {Login}", login);
+
                 //make sure we can communicate securely
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
@@ -50,7 +52,6 @@ namespace MultiFactor.ADFS.Adapter.Services
                 //basic authorization
                 var auth = Convert.ToBase64String(Encoding.ASCII.GetBytes(_configuration.ApiKey + ":" + _configuration.ApiSecret));
 
-
                 using (var web = new WebClient())
                 {
                     web.Headers.Add("Content-Type", "application/json");
@@ -66,6 +67,7 @@ namespace MultiFactor.ADFS.Adapter.Services
 
                 json = Encoding.UTF8.GetString(responseData);
 
+                _logger.Debug("Second-factor API response for user {Login}: {ResponseBody}", login, json);
 
                 var response = Util.JsonDeserialize<MultiFactorWebResponse<MultiFactorAccessPage>>(json);
 
@@ -74,6 +76,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                     bypass = false;
                     throw new Exception(response.Message);
                 }
+
                 return response.Model.Url;
             }
             catch (WebException ex)

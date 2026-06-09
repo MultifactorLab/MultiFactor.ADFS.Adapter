@@ -50,6 +50,18 @@ namespace MultiFactor.ADFS.Adapter.Logging
         }
 
         // Error
+        public static void ConfigurationError(this ILogger logger, Exception exception, string reason)
+        {
+            logger.ForContext(MultiFactorEventIdProvider.PropertyName, AdfsEventId.ConfigurationFailed)
+                  .Error(exception, "Adapter configuration error: {Reason}", reason);
+        }
+
+        public static void ConfigurationError(this ILogger logger, string reason)
+        {
+            logger.ForContext(MultiFactorEventIdProvider.PropertyName, AdfsEventId.ConfigurationFailed)
+                  .Error("Adapter configuration error: {Reason}", reason);
+        }
+
         public static void ApiRequestError(this ILogger logger, Exception exception, string reason)
         {
             logger.ForContext(MultiFactorEventIdProvider.PropertyName, AdfsEventId.ApiRequestFailed)

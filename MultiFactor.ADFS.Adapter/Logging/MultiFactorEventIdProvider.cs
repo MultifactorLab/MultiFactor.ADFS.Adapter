@@ -19,13 +19,15 @@ namespace MultiFactor.ADFS.Adapter.Logging
 
             switch (logEvent.Level)
             {
+                case LogEventLevel.Information:
+                    return AdfsEventId.DefaultInfo;
                 case LogEventLevel.Warning:
                     return AdfsEventId.DefaultWarning;
                 case LogEventLevel.Error:
                 case LogEventLevel.Fatal:
                     return AdfsEventId.DefaultError;
                 default:
-                    return AdfsEventId.DefaultInfo;
+                    return 0;
             }
         }
     }
