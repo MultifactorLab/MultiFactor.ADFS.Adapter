@@ -119,7 +119,6 @@ namespace MultiFactor.ADFS.Adapter
 
         public IAdapterPresentation OnError(HttpListenerRequest request, ExternalAuthenticationException ex)
         {
-            _logger?.AdapterError(ex);
             throw new UnauthorizedAccessException();
         }
 
