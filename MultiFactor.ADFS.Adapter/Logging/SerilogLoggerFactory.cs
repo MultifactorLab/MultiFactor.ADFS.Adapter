@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using Elastic.CommonSchema.Serilog;
 using MultiFactor.ADFS.Adapter.Services;
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.Syslog;
 
@@ -67,13 +69,14 @@ namespace MultiFactor.ADFS.Adapter.Logging
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "MultiFactor", "Logs", "multifactor-adfs-.log");
 
-            if (IsJson(config?.LoggingFormat))
+            var formatter = GetLogFormatter(config?.LoggingFormat);
+            if (formatter != null)
             {
                 loggerConfiguration.WriteTo.File(
-                    new JsonFormatter(),
+                    formatter,
                     path: logFile,
                     rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: null, //??
+                    fileSizeLimitBytes: config?.LogFileMaxSizeBytes,
                     flushToDiskInterval: TimeSpan.FromSeconds(1),
                     // ADFS hosts the adapter in multiple worker processes — shared mode prevents each process from creating its own log file
                     shared: true);
@@ -87,11 +90,36 @@ namespace MultiFactor.ADFS.Adapter.Logging
             loggerConfiguration.WriteTo.File(
                 path: logFile,
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: null, //?
+                fileSizeLimitBytes: config?.LogFileMaxSizeBytes,
                 flushToDiskInterval: TimeSpan.FromSeconds(1),
                 outputTemplate: template,
                 // ADFS hosts the adapter in multiple worker processes — shared mode prevents each process from creating its own log file
                 shared: true);
+        }
+
+        private static ITextFormatter GetLogFormatter(string loggingFormat)
+        {
+            if (string.IsNullOrWhiteSpace(loggingFormat))
+            {
+                return null;
+            }
+
+            if (!Enum.TryParse(loggingFormat, ignoreCase: true, out SerilogJsonFormatterTypes format))
+            {
+                return null;
+            }
+
+            switch (format)
+            {
+                case SerilogJsonFormatterTypes.Json:
+                    return new JsonFormatter();
+                case SerilogJsonFormatterTypes.JsonTz:
+                    return new CustomCompactJsonFormatter("yyyy-MM-dd HH:mm:ss.fff zzz");
+                case SerilogJsonFormatterTypes.ElasticCommonSchema:
+                    return new EcsTextFormatter();
+                default:
+                    return null;
+            }
         }
 
         private static void ConfigureSyslog(LoggerConfiguration loggerConfiguration, MultiFactorConfiguration config)
@@ -125,6 +153,7 @@ namespace MultiFactor.ADFS.Adapter.Logging
                         format: format,
                         facility: facility,
                         useTls: useTls,
+                        certValidationCallback: (sender, cert, chain, errors) => true,
                         outputTemplate: template);
                     break;
                 default:
@@ -150,9 +179,5 @@ namespace MultiFactor.ADFS.Adapter.Logging
             return Enum.TryParse(value, true, out TEnum result) ? result : fallback;
         }
 
-        private static bool IsJson(string format)
-        {
-            return string.Equals(format, "json", StringComparison.OrdinalIgnoreCase);
-        }
     }
 }

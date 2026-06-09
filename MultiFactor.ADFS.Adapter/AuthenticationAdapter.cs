@@ -92,7 +92,8 @@ namespace MultiFactor.ADFS.Adapter
                             SyslogFramer = GetValue(appSettings, "syslog-framer"),
                             SyslogUseTls = ParseNullableBool(GetValue(appSettings, "syslog-use-tls")),
                             SyslogOutputTemplate = GetValue(appSettings, "syslog-output-template"),
-                            FileLogOutputTemplate = GetValue(appSettings, "file-log-output-template")
+                            FileLogOutputTemplate = GetValue(appSettings, "file-log-output-template"),
+                            LogFileMaxSizeBytes = ParseNullableLong(GetValue(appSettings, "log-file-max-size-bytes"))
                         };
                     }
 
@@ -177,6 +178,11 @@ namespace MultiFactor.ADFS.Adapter
         private static bool? ParseNullableBool(string value)
         {
             return bool.TryParse(value, out var result) ? result : (bool?)null;
+        }
+
+        private static long? ParseNullableLong(string value)
+        {
+            return long.TryParse(value, out var result) ? result : (long?)null;
         }
 
         private string CreateAccessRequest(string identity)

@@ -19,6 +19,7 @@
         public bool? SyslogUseTls { get; set; }
         public string SyslogOutputTemplate { get; set; }
         public string FileLogOutputTemplate { get; set; }
+        public long? LogFileMaxSizeBytes { get; set; }
 
         public override string ToString()
         {
