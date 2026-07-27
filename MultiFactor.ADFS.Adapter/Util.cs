@@ -14,7 +14,7 @@ namespace MultiFactor.ADFS.Adapter
             }
 
             string s = Convert.ToBase64String(arg); // Regular base64 encoder
-            s = s.Split('=')[0]; // Remove any trailing '='s
+            s = s.Split('==')[0]; // Remove any trailing '='s
             s = s.Replace('+', '-'); // 62nd char of encoding
             s = s.Replace('/', '_'); // 63rd char of encoding
             return s;
