@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MultiFactor.ADFS.Adapter.Logging;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -14,10 +16,12 @@ namespace MultiFactor.ADFS.Adapter.Services
         private const string InvalidCallbackUrlErrorCode = "invalid_callback_url";
 
         private MultiFactorConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public MultiFactorApiClient(MultiFactorConfiguration configuration)
+        public MultiFactorApiClient(MultiFactorConfiguration configuration, ILogger logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public string CreateRequest(string login, string target, string postbackUrl)
@@ -25,6 +29,8 @@ namespace MultiFactor.ADFS.Adapter.Services
             var bypass=_configuration.Bypass;
             try
             {
+                _logger.Debug("Creating second-factor request for user {Login}", login);
+
                 //make sure we can communicate securely
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
@@ -46,7 +52,6 @@ namespace MultiFactor.ADFS.Adapter.Services
                 //basic authorization
                 var auth = Convert.ToBase64String(Encoding.ASCII.GetBytes(_configuration.ApiKey + ":" + _configuration.ApiSecret));
 
-
                 using (var web = new WebClient())
                 {
                     web.Headers.Add("Content-Type", "application/json");
@@ -62,6 +67,7 @@ namespace MultiFactor.ADFS.Adapter.Services
 
                 json = Encoding.UTF8.GetString(responseData);
 
+                _logger.Debug("Second-factor API response for user {Login}: {ResponseBody}", login, json);
 
                 var response = Util.JsonDeserialize<MultiFactorWebResponse<MultiFactorAccessPage>>(json);
 
@@ -70,6 +76,7 @@ namespace MultiFactor.ADFS.Adapter.Services
                     bypass = false;
                     throw new Exception(response.Message);
                 }
+
                 return response.Model.Url;
             }
             catch (WebException ex)
@@ -85,14 +92,13 @@ namespace MultiFactor.ADFS.Adapter.Services
                 }
 
                 var message = apiError?.Message ?? ex.Message;
-                Logger.Error("MultiFactor API error: " + message);
+                _logger.ApiRequestError(ex, message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + message);
             }
             catch (Exception ex)
             {
-                
-                Logger.Error("MultiFactor API error: " + ex.Message);
+                _logger.ApiError(ex, ex.Message);
                 if (bypass) return "bypass";
                 throw new Exception("MultiFactor API error: " + ex.Message);
             }

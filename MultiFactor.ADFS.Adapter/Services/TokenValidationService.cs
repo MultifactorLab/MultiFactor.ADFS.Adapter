@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MultiFactor.ADFS.Adapter.Logging;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,10 +12,12 @@ namespace MultiFactor.ADFS.Adapter.Services
     public class TokenValidationService
     {
         private readonly MultiFactorConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public TokenValidationService(MultiFactorConfiguration configuration)
+        public TokenValidationService(MultiFactorConfiguration configuration, ILogger logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
         /// <summary>
         /// Generate JWT when Bypass mode. 
@@ -122,7 +126,7 @@ namespace MultiFactor.ADFS.Adapter.Services
             }
             catch (Exception ex)
             {
-                Logger.Error($"Failed to parse token: {ex.Message}, {ex}");
+                _logger.TokenValidationError(ex);
                 return false;
             }
         }
